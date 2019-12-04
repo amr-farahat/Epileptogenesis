@@ -9,8 +9,8 @@ if tf.__version__ != '2.0.0':
     tf.enable_eager_execution()
 
 def plot_dict_loss(d, run_logdir):
-    fig = plt.figure(figsize=(18,6))
-    fig.subplots_adjust(hspace=0.4, wspace=0.9)
+    fig = plt.figure(figsize=(20,6))
+    fig.subplots_adjust(hspace=0.4, wspace=0.2)
     for i, key in enumerate([x for x in list(d.keys()) if not x.startswith('v_')]):
         ax = fig.add_subplot(1, 4, i+1)
         ax.plot(d[key], label=key)

@@ -28,12 +28,12 @@ with open(animal_path+"valid_files.txt", "rb") as fp:
     valid_files = pickle.load(fp)[:10]
 
 # mean, std = compute_data_parameters(train_files)
-# np.savetxt("../data/1227/mean_1227.csv", mean, delimiter=",")
-# np.savetxt("../data/1227/std_122v.csv", std, delimiter=",")
+# np.savetxt("../data/1227/mean_1227_20files.csv", mean, delimiter=",")
+# np.savetxt("../data/1227/std_1227_20files.csv", std, delimiter=",")
 
-mean = np.genfromtxt(animal_path+"mean_1227.csv", delimiter=',')[:-1]
+mean = np.genfromtxt(animal_path+"mean_1227_20files.csv", delimiter=',')[:-1]
 # mean = np.expand_dims(mean, 1)
-std = np.genfromtxt(animal_path+"std_122v.csv", delimiter=',')[:-1]
+std = np.genfromtxt(animal_path+"std_1227_20files.csv", delimiter=',')[:-1]
 # std = np.expand_dims(std, 1)
 
 
@@ -49,16 +49,21 @@ run_logdir = get_run_logdir(root_logdir)
 
 input_size = 2560
 h_dim = 1000
-z_dim = 2
+z_dim = 32
 n_epochs=1000
 model = AAE(input_size, h_dim, z_dim)
+
+# model.encoder.load_weights(root_logdir+'/run_2019_12_02-17_46_16/encoder.h5')
+# model.discriminator.load_weights(root_logdir+'/run_2019_12_02-17_46_16/discriminator.h5')
+# model.decoder.load_weights(root_logdir+'/run_2019_12_02-17_46_16/decoder.h5')
+
 metrics = model.train(n_epochs, train_set, valid_set)
 with open(run_logdir+'/metrics.pickle', 'wb') as handle:
     pickle.dump(metrics, handle)
 plot_dict_loss(metrics, run_logdir)
 model.save(run_logdir)
 
-original_data, reconstructions = predict_validation_samples(model, valid_set, no_samples=6)
+original_data, reconstructions = predict_validation_samples(model, valid_set, no_samples=10)
 plot_samples(original_data, reconstructions, run_logdir)
 
 
