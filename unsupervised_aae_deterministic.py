@@ -125,8 +125,10 @@ def autoencoder_loss(inputs, reconstruction, loss_weight):
     return loss_weight * mse(inputs, reconstruction)
 
 
-def discriminator_loss(real_output, fake_output, loss_weight):
+def discriminator_loss(self, real_output, fake_output, loss_weight):
+    self.cross_entropy.reset_states()
     loss_real = cross_entropy(tf.ones_like(real_output), real_output)
+    self.cross_entropy.reset_states()
     loss_fake = cross_entropy(tf.zeros_like(fake_output), fake_output)
     return loss_weight * (loss_fake + loss_real)
 

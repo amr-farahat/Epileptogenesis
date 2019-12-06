@@ -45,7 +45,7 @@ def read(line):
     defs = [tf.constant([], dtype=tf.string)]+ [0.]*n_inputs
     fields = tf.io.decode_csv(line, record_defaults=defs)[1:-1]
     x = tf.stack(fields)
-    # x = tf.expand_dims(x,1)
+    x = tf.expand_dims(x,1)
     return x
 
 def csv_reader_dataset(filepaths, mean, std, n_readers=5, n_read_threads=None, shuffle_buffer_size=10000, 

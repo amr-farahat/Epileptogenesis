@@ -8,13 +8,16 @@ import tensorflow as tf
 if tf.__version__ != '2.0.0':
     tf.enable_eager_execution()
 
+
 def plot_dict_loss(d, run_logdir):
     fig = plt.figure(figsize=(20,6))
     fig.subplots_adjust(hspace=0.4, wspace=0.2)
     for i, key in enumerate([x for x in list(d.keys()) if not x.startswith('v_')]):
         ax = fig.add_subplot(1, 4, i+1)
-        ax.plot(d[key], label=key)
-        ax.plot(d['v_'+key], label='v_'+key)
+        ax.plot(d[key], label=key, linewidth=2, color='blue')
+        ax.plot(d['v_'+key], label='v_'+key, linewidth=2, color='red')
+        if max(d[key] + d['v_'+key]) > 5:
+            ax.set_ylim([0, 5])
         ax.legend()
     plt.savefig(run_logdir+'/losses.png')
 
@@ -26,6 +29,7 @@ def plot_loss(history, run_logdir):
     plt.plot(val_loss, label="validation")
     plt.legend()
     plt.savefig(run_logdir+'/loss.png')
+    plt.close()
 
 
 def get_run_logdir(root_logdir):
@@ -51,29 +55,32 @@ def predict_validation_samples(model, valid_set, no_samples=6):
     
     return original_data, reconstructions
 
-def plot_samples(original_data, reconstructions, run_logdir):
+def plot_samples(original_data, reconstructions, run_logdir, epoch):
     fig = plt.figure(figsize=(20,10))
-    fig.subplots_adjust(hspace=0.4, wspace=0.9)
     for i in range(1, len(original_data)+1):
         ax = fig.add_subplot(len(original_data), 1, i)
-        ax.plot(original_data[i-1], c='red', label='original')
-        ax.plot(reconstructions[i-1], c='black', label='reconstructed')
+        ax.plot(original_data[i-1], c='red', label='original',  linewidth=2)
+        ax.plot(reconstructions[i-1], c='black', label='reconstructed',  linewidth=3)
+        ax.set_yticks([], [])
+        if i < len(original_data): 
+            ax.set_xticks([], [])
     plt.legend(loc='upper right', shadow=True)
-    plt.savefig(run_logdir+'/valid_samples_plot.png')
+    plt.savefig(run_logdir+'/valid_samples_plot_'+str(epoch)+'.png')
+    plt.close()
 
 
-def save_results(history, model, valid_set, note, run_logdir, no_samples=6):
+# def save_results(history, model, valid_set, note, run_logdir, no_samples=6):
 
-    plot_loss(history, run_logdir)
+#     plot_loss(history, run_logdir)
 
-    model.save(run_logdir+'/the_model.h5')
+#     model.save(run_logdir+'/the_model.h5')
 
-    original_data, reconstructions = predict_validation_samples(model, valid_set, no_samples=no_samples)
+#     original_data, reconstructions = predict_validation_samples(model, valid_set, no_samples=no_samples)
 
-    plot_samples(original_data, reconstructions, run_logdir)
+#     plot_samples(original_data, reconstructions, run_logdir)
 
-    with open(run_logdir+'/notes.txt', 'a') as f:
-        f.write(note)
+#     with open(run_logdir+'/notes.txt', 'a') as f:
+#         f.write(note)
 
 
 

@@ -28,19 +28,19 @@ with open(animal_path+"valid_files.txt", "rb") as fp:
     valid_files = pickle.load(fp)[:10]
 
 # mean, std = compute_data_parameters(train_files)
-# np.savetxt("../data/1227/mean_1227_20files.csv", mean, delimiter=",")
-# np.savetxt("../data/1227/std_1227_20files.csv", std, delimiter=",")
+# np.savetxt("../data/1227/mean_1227_5files.csv", mean, delimiter=",")
+# np.savetxt("../data/1227/std_1227_5files.csv", std, delimiter=",")
 
 mean = np.genfromtxt(animal_path+"mean_1227_20files.csv", delimiter=',')[:-1]
-# mean = np.expand_dims(mean, 1)
+mean = np.expand_dims(mean, 1)
 std = np.genfromtxt(animal_path+"std_1227_20files.csv", delimiter=',')[:-1]
-# std = np.expand_dims(std, 1)
+std = np.expand_dims(std, 1)
 
 
 
-train_set = csv_reader_dataset(train_files, mean, std, batch_size=128)
+train_set = csv_reader_dataset(train_files, mean, std, batch_size=256)
 
-valid_set = csv_reader_dataset(valid_files, mean, std, batch_size=128)
+valid_set = csv_reader_dataset(valid_files, mean, std, batch_size=256)
 
 
 run_logdir = get_run_logdir(root_logdir)
@@ -48,22 +48,22 @@ run_logdir = get_run_logdir(root_logdir)
 # save_results(history, model, valid_set, note, run_logdir, no_samples=6)
 
 input_size = 2560
-h_dim = 1000
-z_dim = 32
-n_epochs=1000
-model = AAE(input_size, h_dim, z_dim)
+h_dim = 32
+z_dim = 40
+n_epochs=100
+model = AAE(input_size, h_dim, z_dim, run_logdir)
 
-# model.encoder.load_weights(root_logdir+'/run_2019_12_02-17_46_16/encoder.h5')
-# model.discriminator.load_weights(root_logdir+'/run_2019_12_02-17_46_16/discriminator.h5')
-# model.decoder.load_weights(root_logdir+'/run_2019_12_02-17_46_16/decoder.h5')
+# model.encoder.load_weights(root_logdir+'/run_2019_12_06-12_46_20/encoder.h5')
+# model.discriminator.load_weights(root_logdir+'/run_2019_12_06-12_46_20/discriminator.h5')
+# model.decoder.load_weights(root_logdir+'/run_2019_12_06-12_46_20/decoder.h5')
 
 metrics = model.train(n_epochs, train_set, valid_set)
 with open(run_logdir+'/metrics.pickle', 'wb') as handle:
     pickle.dump(metrics, handle)
 plot_dict_loss(metrics, run_logdir)
-model.save(run_logdir)
+model.save()
 
-original_data, reconstructions = predict_validation_samples(model, valid_set, no_samples=10)
-plot_samples(original_data, reconstructions, run_logdir)
+# original_data, reconstructions = predict_validation_samples(model, valid_set, no_samples=10)
+# plot_samples(original_data, reconstructions, run_logdir)
 
 
