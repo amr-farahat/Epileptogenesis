@@ -45,37 +45,96 @@ def create_conv_AE_big(input_shape = (2560, 1), af='elu'):
         return model 
 
 
-def create_conv_AE(input_shape = (2560, 1), af='elu'):
+def create_conv_AE(input_shape = (2560, 1), dilation_rate=1):
     
-    input = keras.layers.Input(shape=input_shape)
-    
-    conv1 = keras.layers.Conv1D(16, 6, activation=af, padding='same')(input)
-    pool1 = keras.layers.MaxPool1D(4)(conv1)
-    
-    conv2 = keras.layers.Conv1D(32, 6, activation=af, padding='same')(pool1)
-    pool2 = keras.layers.MaxPool1D(4)(conv2)
+        input = tf.keras.layers.Input(shape=input_shape)
+        conv1 = tf.keras.layers.Conv1D(64, 55, activation='elu', padding='same', dilation_rate=dilation_rate)(input)
+        bn1 = tf.keras.layers.BatchNormalization()(conv1)
+        pool1 = tf.keras.layers.MaxPool1D(4)(bn1)
+        conv2 = tf.keras.layers.Conv1D(128, 55, activation='elu', padding='same', dilation_rate=dilation_rate)(pool1)
+        bn2 = tf.keras.layers.BatchNormalization()(conv2)
+        pool2 = tf.keras.layers.MaxPool1D(4)(bn2)
+        conv3 = tf.keras.layers.Conv1D(256, 55, activation='elu', padding='same', dilation_rate=dilation_rate)(pool2)
+        bn3 = tf.keras.layers.BatchNormalization()(conv3)
+        pool3 = tf.keras.layers.MaxPool1D(4)(bn3)   
+        code = tf.keras.layers.Conv1D(1,1, activation='linear')(pool3)
+        bn4 = tf.keras.layers.BatchNormalization()(code)
 
-    conv3 = keras.layers.Conv1D(64, 6, activation=af, padding='same')(pool2)
-    pool3 = keras.layers.MaxPool1D(4)(conv2)
+        bn4 = tf.keras.layers.Reshape((40,1,1))(bn4)
+
+        deconv1 = tf.keras.layers.Conv2DTranspose(256, (55,1), strides=(4,1), activation='elu', padding='same')(bn4)
+        # upsamp1 = tf.keras.layers.UpSampling1D(4)(deconv1)
+        deconv2 = tf.keras.layers.Conv2DTranspose(128, (55,1), strides=(4,1) , activation='elu', padding='same')(deconv1)
+        # upsamp2 = tf.keras.layers.UpSampling1D(4)(deconv2)   
+        deconv3 = tf.keras.layers.Conv2DTranspose(64, (55,1), strides=(4,1) , activation='elu', padding='same')(deconv2)
+        # upsamp3 = tf.keras.layers.UpSampling1D(4)(deconv3)
+        decoded = tf.keras.layers.Conv2DTranspose(1, (55,1), strides=(1,1) , activation='linear', padding='same')(deconv3)
+        decoded = tf.keras.layers.Reshape(input_shape)(decoded)
+        model = tf.keras.Model(inputs=input, outputs=decoded)
     
-    conv4 = keras.layers.Conv1D(128, 6, activation=af, padding='same')(pool3)
-    pool4 = keras.layers.MaxPool1D(4)(conv4)
+        return model  
+
+def branched(input_shape = (2560, 1), dilation_rate=1):
+    
+        input = tf.keras.layers.Input(shape=input_shape)
+
+        conv1 = tf.keras.layers.Conv1D(16, 55, activation='elu', padding='same', dilation_rate=dilation_rate)(input)
+        bn1 = tf.keras.layers.BatchNormalization()(conv1)
+        pool1 = tf.keras.layers.MaxPool1D(4)(bn1)
+
+        conv2 = tf.keras.layers.Conv1D(16, 105, activation='elu', padding='same', dilation_rate=dilation_rate)(input)
+        bn2 = tf.keras.layers.BatchNormalization()(conv2)
+        pool2 = tf.keras.layers.MaxPool1D(4)(bn2)
+
+        conv3 = tf.keras.layers.Conv1D(16, 210, activation='elu', padding='same', dilation_rate=dilation_rate)(input)
+        bn3 = tf.keras.layers.BatchNormalization()(conv3)
+        pool3 = tf.keras.layers.MaxPool1D(4)(bn3) 
+
+        conc1 = tf.keras.layers.concatenate([pool1, pool2, pool3])
+        conc1 = tf.keras.layers.Conv1D(1,1, activation='elu')(conc1)
+
+        conv10 = tf.keras.layers.Conv1D(16, 15, activation='elu', padding='same', dilation_rate=dilation_rate)(conc1)
+        bn10 = tf.keras.layers.BatchNormalization()(conv10)
+        pool10 = tf.keras.layers.MaxPool1D(4)(bn10)
+
+        conv20 = tf.keras.layers.Conv1D(16, 31, activation='elu', padding='same', dilation_rate=dilation_rate)(conc1)
+        bn20 = tf.keras.layers.BatchNormalization()(conv20)
+        pool20 = tf.keras.layers.MaxPool1D(4)(bn20)
+
+        conv30 = tf.keras.layers.Conv1D(16, 63, activation='elu', padding='same', dilation_rate=dilation_rate)(conc1)
+        bn30 = tf.keras.layers.BatchNormalization()(conv30)
+        pool30 = tf.keras.layers.MaxPool1D(4)(bn30) 
+
+        conc10 = tf.keras.layers.concatenate([pool10, pool20, pool30])
+        conc10 = tf.keras.layers.Conv1D(1,1, activation='elu')(conc10)
+
+        conv100 = tf.keras.layers.Conv1D(16, 3, activation='elu', padding='same', dilation_rate=dilation_rate)(conc10)
+        bn100 = tf.keras.layers.BatchNormalization()(conv100)
+        pool100 = tf.keras.layers.MaxPool1D(4)(bn100)
+
+        conv200 = tf.keras.layers.Conv1D(16, 7, activation='elu', padding='same', dilation_rate=dilation_rate)(conc10)
+        bn200 = tf.keras.layers.BatchNormalization()(conv200)
+        pool200 = tf.keras.layers.MaxPool1D(4)(bn200)
+
+        conv300 = tf.keras.layers.Conv1D(16, 15, activation='elu', padding='same', dilation_rate=dilation_rate)(conc10)
+        bn300 = tf.keras.layers.BatchNormalization()(conv300)
+        pool300 = tf.keras.layers.MaxPool1D(4)(bn300) 
+
+        conc100 = tf.keras.layers.concatenate([pool100, pool200, pool300])
         
-    code = keras.layers.Conv1D(1,1, activation=af)(pool4)
-    
-    upsamp1 = keras.layers.UpSampling1D(4)(code)
-    deconv1 = keras.layers.Conv1D(64, 6, activation=af, padding='same')(upsamp1)
-    
-    upsamp2 = keras.layers.UpSampling1D(4)(deconv1)   
-    deconv2 = keras.layers.Conv1D(32, 6, activation=af, padding='same')(upsamp2)
+        code = tf.keras.layers.Conv1D(1,1, activation='linear')(conc100)
+        code = tf.keras.layers.BatchNormalization()(code)
 
-    upsamp3 = keras.layers.UpSampling1D(4)(deconv2)
-    deconv3 = keras.layers.Conv1D(1, 6, activation='linear', padding='same')(upsamp3)
+        # deconv1 = tf.keras.layers.Conv1D(256, 55, activation='elu', padding='valid')(code)
+        upsamp1 = tf.keras.layers.UpSampling1D(4)(code)
+        deconv2 = tf.keras.layers.Conv1D(16, 7, activation='elu', padding='same')(upsamp1)
+        upsamp2 = tf.keras.layers.UpSampling1D(4)(deconv2)   
+        deconv3 = tf.keras.layers.Conv1D(16, 7, activation='elu', padding='same', dilation_rate=2)(upsamp2)
+        upsamp3 = tf.keras.layers.UpSampling1D(4)(deconv3)
+        decoded = tf.keras.layers.Conv1D(1, 7, activation='linear', padding='same', dilation_rate=4)(upsamp3)
+        model = tf.keras.Model(inputs=input, outputs=decoded)
     
-    model = keras.models.Model(inputs=[input], outputs=[deconv3])
-    
-    return model  
-
+        return model 
 
 def create_dense_AE(input_shape = (2560, ), af='elu'):
     

@@ -8,6 +8,10 @@ from os import listdir
 from os.path import isfile, join
 from random import randrange
 
+random_seed = 42
+tf.random.set_random_seed(random_seed)
+np.random.seed(random_seed)
+
 #%%
 # list the files
 
@@ -58,6 +62,8 @@ def csv_reader_dataset(filepaths, mean, std, n_readers=5, n_read_threads=None, s
     dataset = dataset.shuffle(shuffle_buffer_size)
     dataset = dataset.map(read, num_parallel_calls=n_parse_threads)
     dataset = dataset.map(lambda x: (x-mean) / (std + np.finfo(np.float32).eps), num_parallel_calls=n_parse_threads)
+    
     # dataset = dataset.map(lambda x: (x,x) , num_parallel_calls=n_parse_threads)
+    
     dataset = dataset.batch(batch_size)
     return dataset.prefetch(1)

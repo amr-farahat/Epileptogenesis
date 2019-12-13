@@ -11,13 +11,13 @@ if tf.__version__ != '2.0.0':
 
 def plot_dict_loss(d, run_logdir):
     fig = plt.figure(figsize=(20,6))
-    fig.subplots_adjust(hspace=0.4, wspace=0.2)
+    # fig.subplots_adjust(hspace=0.4, wspace=0.2)
     for i, key in enumerate([x for x in list(d.keys()) if not x.startswith('v_')]):
-        ax = fig.add_subplot(1, 4, i+1)
+        ax = fig.add_subplot(2, 4, i+1)
         ax.plot(d[key], label=key, linewidth=2, color='blue')
         ax.plot(d['v_'+key], label='v_'+key, linewidth=2, color='red')
-        if max(d[key] + d['v_'+key]) > 5:
-            ax.set_ylim([0, 5])
+        # if max(d[key] + d['v_'+key]) > 1:
+        #     ax.set_ylim([0, 1])
         ax.legend()
     plt.savefig(run_logdir+'/losses.png')
 
@@ -60,7 +60,7 @@ def plot_samples(original_data, reconstructions, run_logdir, epoch):
     for i in range(1, len(original_data)+1):
         ax = fig.add_subplot(len(original_data), 1, i)
         ax.plot(original_data[i-1], c='red', label='original',  linewidth=2)
-        ax.plot(reconstructions[i-1], c='black', label='reconstructed',  linewidth=3)
+        ax.plot(reconstructions[i-1], c='black', label='reconstructed',  linewidth=2)
         ax.set_yticks([], [])
         if i < len(original_data): 
             ax.set_xticks([], [])
@@ -69,18 +69,18 @@ def plot_samples(original_data, reconstructions, run_logdir, epoch):
     plt.close()
 
 
-# def save_results(history, model, valid_set, note, run_logdir, no_samples=6):
+def save_results(history, model, valid_set, note, run_logdir, no_samples=6):
 
-#     plot_loss(history, run_logdir)
+    plot_loss(history, run_logdir)
 
-#     model.save(run_logdir+'/the_model.h5')
+    model.save(run_logdir+'/the_model.h5')
 
-#     original_data, reconstructions = predict_validation_samples(model, valid_set, no_samples=no_samples)
+    original_data, reconstructions = predict_validation_samples(model, valid_set, no_samples=no_samples)
 
-#     plot_samples(original_data, reconstructions, run_logdir)
+    plot_samples(original_data, reconstructions, run_logdir, 0)
 
-#     with open(run_logdir+'/notes.txt', 'a') as f:
-#         f.write(note)
+    with open(run_logdir+'/notes.txt', 'a') as f:
+        f.write(note)
 
 
 
