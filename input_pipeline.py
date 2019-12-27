@@ -1,4 +1,4 @@
-#%%
+
 import tensorflow as tf
 if tf.__version__ != '2.0.0':
     tf.enable_eager_execution()
@@ -12,7 +12,7 @@ random_seed = 42
 tf.random.set_random_seed(random_seed)
 np.random.seed(random_seed)
 
-#%%
+
 # list the files
 
 def get_data_files(path, train_percentage=0.8):
@@ -22,7 +22,7 @@ def get_data_files(path, train_percentage=0.8):
 
     return train_files, valid_files
 
-#%%
+
 def compute_data_parameters(files, dims=2561):
 
     sums = np.zeros((dims,))
@@ -65,5 +65,5 @@ def csv_reader_dataset(filepaths, mean, std, n_readers=5, n_read_threads=None, s
     
     # dataset = dataset.map(lambda x: (x,x) , num_parallel_calls=n_parse_threads)
     
-    dataset = dataset.batch(batch_size)
+    dataset = dataset.batch(batch_size, drop_remainder=True)
     return dataset.prefetch(1)
