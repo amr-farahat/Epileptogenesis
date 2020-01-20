@@ -10,6 +10,26 @@ from sklearn.manifold import TSNE
 if tf.__version__ != '2.0.0':
     tf.enable_eager_execution()
 
+def plot_errors(errors, path, err='reconstruction'):
+    fig = plt.figure(figsize=(15,10))
+    plt.plot(errors)
+        
+    if err == 'pdf':
+        # plt.ylim(0, 1.4e-20)
+        plt.ylabel('PDF')
+        # ticks = np.arange(0,errors.shape[0], 720/2)
+        # plt.xticks(ticks, np.arange(0,len(ticks)/2, 0.5))        
+    if err == 'reconstruction':
+        plt.ylim(0, 1500)
+        plt.ylabel('Error')
+        ticks = np.arange(0,errors.shape[0], 1843200/2)
+        plt.xticks(ticks, np.arange(0,len(ticks)/2, 0.5))
+        
+    
+    plt.grid(True)
+    plt.xlabel('Time in hours')
+    plt.savefig(path)
+    plt.close()
 
 def plot_dict_loss(d, run_logdir):
     fig = plt.figure(figsize=(30,20))
@@ -39,20 +59,21 @@ def plot_latent_space(model, valid_set, run_logdir, epoch):
 
     codes = []
     for batch in valid_set:
-        code = model.predict(batch)[:,:,0]
+        code = model.predict(batch)
+        # code = model.predict(batch)[:,:,0]
         codes.append(code)
-    # pdb.set_trace()
+
     codes = np.array(codes)
     codes_flattened = np.reshape(codes, (codes.shape[0]*codes.shape[1], codes.shape[2]))
-    codes_embedded = TSNE(n_components=2).fit_transform(codes_flattened)
+    # codes_embedded = TSNE(n_components=2).fit_transform(codes_flattened)
 
-    plt.scatter(codes_embedded[:, 0], codes_embedded[:, 1], s=2)
+    plt.scatter(codes_flattened[:, 0], codes_flattened[:, 1], s=2)
     plt.savefig(run_logdir+'/latent_space_'+str(epoch)+'.png')
     plt.close()
 
 
-def get_run_logdir(root_logdir):
-    run_id = time.strftime("run_%Y_%m_%d-%H_%M_%S")
+def get_run_logdir(root_logdir, animal):
+    run_id = time.strftime("run_%Y_%m_%d-%H_%M_%S")+'_'+animal
     path = os.path.join(root_logdir, run_id)
     os.mkdir(path)
     return path
@@ -74,8 +95,13 @@ def predict_validation_samples(model, valid_set, no_samples=6):
     
     return original_data, reconstructions
 
-def sample_data(model, z_dim, run_logdir, epoch, no_samples=10):
-    z = tf.random.normal([no_samples, z_dim, 1], mean=0.0, stddev=1.0)
+def sample_data(model, z_dim, run_logdir, norm_params, std, epoch, no_samples=10):
+    # z = tf.random.normal([no_samples, z_dim, 1], mean=0.0, stddev=1.0)
+
+    weights = np.ones(len(norm_params), dtype=np.float64) / len(norm_params)
+    mixture_idx = np.random.choice(len(weights), size=no_samples, replace=True, p=weights)
+    z = tf.convert_to_tensor([np.random.normal(norm_params[idx], std, size=(z_dim,1)) for idx in mixture_idx], dtype=tf.float32)
+
     x = model(z)
     fig = plt.figure(figsize=(20,10))
     for i in range(1, no_samples+1):
@@ -117,6 +143,7 @@ def save_results(history, model, valid_set, note, run_logdir, no_samples=6):
 
     with open(run_logdir+'/notes.txt', 'a') as f:
         f.write(note)
+
 
 
 
