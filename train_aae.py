@@ -16,7 +16,7 @@ n_epochs=15
 batch_size = 256
 
 
-animals = sorted([f for f in listdir(data_path)])
+animals = sorted([f for f in listdir(data_path)])[0:1]
 
 for animal in animals:
     

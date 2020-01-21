@@ -33,7 +33,7 @@ class AAE(tf.keras.Model):
         self.augment_weight = 0.8
 
         self.norm_params = np.array([0])
-        self.std = 1.0
+        self.std = 0.1
 
         self.ae_optimizer = tf.keras.optimizers.Adam(learning_rate=self.base_lr, beta_1=0.5)
         self.dc_z_optimizer = tf.keras.optimizers.Adam(learning_rate=self.base_lr, beta_1=0.5)

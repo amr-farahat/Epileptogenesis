@@ -5,8 +5,8 @@ import tensorflow as tf
 tf.enable_eager_execution()
 import matplotlib.pyplot as plt
 import matplotlib
-matplotlib.use('TkAgg')
-# matplotlib.use('Agg')
+# matplotlib.use('TkAgg')
+matplotlib.use('Agg')
 import itertools
 import os
 import scipy
@@ -25,7 +25,7 @@ batch_size = 512
 models = sorted([f for f in os.listdir(root_logdir)])
 z_dim = 80
 
-for model_name in models:
+for model_name in models[5:]:
     print('working on: '+model_name)
 
     animal_path = data_path+model_name[24:]
@@ -141,7 +141,6 @@ for model_name in models:
     plt.scatter(np.arange(int(whole_segment_t_errors.shape[0])),whole_segment_t_errors, color='orange', label='errors', marker='.', s=1)  
     plt.plot(moving_average, linewidth=2, color='black', label='moving average')
     plt.fill_between(moving_std.index, (moving_average-moving_std), (moving_average+moving_std), color='red', alpha=.2, label=' moving std')
-    plt.hlines([th90, th95, th99], 0, len(whole_segment_t_errors), colors='green', linewidth=2, linestyles='dashed', label='90th, 95th, 99th percentiles')
     plt.ylim([0,1.2])
     plt.xlabel('Time in days')
     plt.ylabel('Reconstruction error')
@@ -206,7 +205,7 @@ for model_name in models:
     th_whole_segment_t_errors = np.copy(whole_segment_t_errors)
     th_whole_segment_t_errors[th_whole_segment_t_errors < th99] = 0
     fig = plt.figure(figsize=(20,10))
-    plt.scatter(np.arange(len(th_whole_segment_t_errors)),th_whole_segment_t_errors, marker='.', s=0.5)
+    plt.scatter(np.arange(len(th_whole_segment_t_errors)),th_whole_segment_t_errors, marker='.', color='orange', s=1)
     plt.hlines(th99, 0, len(whole_segment_t_errors), colors='green', linewidth=1, linestyles='dashed', label='99th percentiles')
     plt.ylim([0,1.2])
     plt.xlabel('Time in days')
@@ -219,7 +218,7 @@ for model_name in models:
     th_whole_segment_v_errors = np.copy(whole_segment_v_errors)
     th_whole_segment_v_errors[th_whole_segment_v_errors < th99] = 0
     fig = plt.figure(figsize=(20,10))
-    plt.scatter(np.arange(len(th_whole_segment_v_errors)),th_whole_segment_v_errors, marker='.', s=0.5)
+    plt.scatter(np.arange(len(th_whole_segment_v_errors)),th_whole_segment_v_errors, marker='.', color='orange', s=1)
     plt.hlines(th99, 0, len(whole_segment_v_errors), colors='green', linewidth=1, linestyles='dashed', label='99th percentiles')
     plt.ylim([0,1.2])
     plt.xlabel('Time in days')
@@ -232,7 +231,7 @@ for model_name in models:
     th_whole_segment_e_errors = np.copy(whole_segment_e_errors)
     th_whole_segment_e_errors[th_whole_segment_e_errors < th99] = 0
     fig = plt.figure(figsize=(20,10))
-    plt.scatter(np.arange(len(th_whole_segment_e_errors)),th_whole_segment_e_errors, marker='.', s=0.5)
+    plt.scatter(np.arange(len(th_whole_segment_e_errors)),th_whole_segment_e_errors, marker='.', color='orange', s=1)
     plt.hlines(th99, 0, len(whole_segment_e_errors), colors='green', linewidth=1, linestyles='dashed', label='99th percentiles')
     plt.ylim([0,1.2])
     plt.xlabel('Time in days')
@@ -242,44 +241,46 @@ for model_name in models:
     plt.savefig(output_directory+'th_e_whole_segment_errors.png')
     plt.close()
 
-    window_in_minutes = 60
-    window = int((window_in_minutes*60)/5)
+    test_window_in_minutes = [1,5,15,30,60]
+    for window_in_minutes in test_window_in_minutes:
+        window = int((window_in_minutes*60)/5)
+        r = np.reshape(th_whole_segment_t_errors[:len(th_whole_segment_t_errors)//window*window], (-1, window))
+        frequency_t = np.sum(np.where(r>0, 1, 0),axis=1)    
+        fig = plt.figure(figsize=(20,10))
+        plt.plot(np.arange(len(frequency_t)),frequency_t)
+        plt.xlabel('Time in days')
+        plt.ylabel('#suprathrehold segments per '+str(window_in_minutes)+' minutes')
+        ticks = np.arange(0,frequency_t.shape[0], (720/window)*24)
+        plt.xticks(ticks, np.arange(0,len(ticks)*24, 1)) 
+        plt.savefig(output_directory+'frequency_t_'+str(window_in_minutes)+' minutes.png')
+        plt.close()
 
-    r = np.reshape(th_whole_segment_t_errors[:len(th_whole_segment_t_errors)//window*window], (-1, window))
-    frequency_t = np.sum(np.where(r>0, 1, 0),axis=1)    
-    fig = plt.figure(figsize=(20,10))
-    plt.plot(np.arange(len(frequency_t)),frequency_t)
-    plt.xlabel('Time in days')
-    plt.ylabel('#suprathrehold segments per '+str(window_in_minutes)+' minutes')
-    ticks = np.arange(0,frequency_t.shape[0], (720/window)*24)
-    plt.xticks(ticks, np.arange(0,len(ticks)*24, 1)) 
-    plt.savefig(output_directory+'frequency_t.png')
-    plt.close()
+        th99_frequency = np.percentile(frequency_t, 99)
 
-    th99_frequency = np.percentile(frequency_t, 99)
+        r = np.reshape(th_whole_segment_v_errors[:len(th_whole_segment_v_errors)//window*window], (-1, window))
+        frequency_v = np.sum(np.where(r>0, 1, 0),axis=1)    
+        fig = plt.figure(figsize=(20,10))
+        plt.plot(np.arange(len(frequency_v)),frequency_v)
+        if np.any(frequency_v > th99_frequency):
+            plt.axvline(np.where(frequency_v > th99_frequency)[0][0], c='r', linewidth=3, linestyle='dashed')
+        plt.xlabel('Time in days')
+        plt.ylabel('#suprathrehold segments per '+str(window_in_minutes)+' minutes')
+        ticks = np.arange(0,frequency_v.shape[0], (720/window)*24)
+        plt.xticks(ticks, np.arange(0,len(ticks)*24, 1)) 
+        plt.savefig(output_directory+'frequency_v_'+str(window_in_minutes)+' minutes.png')
+        plt.close()
 
-    r = np.reshape(th_whole_segment_v_errors[:len(th_whole_segment_v_errors)//window*window], (-1, window))
-    frequency_v = np.sum(np.where(r>0, 1, 0),axis=1)    
-    fig = plt.figure(figsize=(20,10))
-    plt.plot(np.arange(len(frequency_v)),frequency_v)
-    plt.axvline(np.where(frequency_v > th99_frequency)[0][0], c='r', linewidth=3, linestyle='dashed')
-    plt.xlabel('Time in days')
-    plt.ylabel('#suprathrehold segments per '+str(window_in_minutes)+' minutes')
-    ticks = np.arange(0,frequency_v.shape[0], (720/window)*24)
-    plt.xticks(ticks, np.arange(0,len(ticks)*24, 1)) 
-    plt.savefig(output_directory+'frequency_v.png')
-    plt.close()
-
-    r = np.reshape(th_whole_segment_e_errors[:len(th_whole_segment_e_errors)//window*window], (-1, window))
-    frequency_e = np.sum(np.where(r>0, 1, 0),axis=1)    
-    fig = plt.figure(figsize=(20,10))
-    plt.plot(np.arange(len(frequency_e)),frequency_e)
-    plt.axvline(np.where(frequency_e > th99_frequency)[0][0], c='r', linewidth=3, linestyle='dashed')
-    plt.xlabel('Time in days')
-    plt.ylabel('#suprathrehold segments per '+str(window_in_minutes)+' minutes')
-    ticks = np.arange(0,frequency_e.shape[0], (720/window)*24)
-    plt.xticks(ticks, np.arange(0,len(ticks)*24, 1)) 
-    plt.savefig(output_directory+'frequency_e.png')
-    plt.close()
+        r = np.reshape(th_whole_segment_e_errors[:len(th_whole_segment_e_errors)//window*window], (-1, window))
+        frequency_e = np.sum(np.where(r>0, 1, 0),axis=1)    
+        fig = plt.figure(figsize=(20,10))
+        plt.plot(np.arange(len(frequency_e)),frequency_e)
+        if np.any(frequency_e > th99_frequency):
+            plt.axvline(np.where(frequency_e > th99_frequency)[0][0], c='r', linewidth=3, linestyle='dashed')
+        plt.xlabel('Time in days')
+        plt.ylabel('#suprathrehold segments per'+str(window_in_minutes)+' minutes')
+        ticks = np.arange(0,frequency_e.shape[0], (720/window)*24)
+        plt.xticks(ticks, np.arange(0,len(ticks)*24, 1)) 
+        plt.savefig(output_directory+'frequency_e_'+str(window_in_minutes)+' minutes.png')
+        plt.close()
 
     #############################################################################
