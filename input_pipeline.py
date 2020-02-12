@@ -5,7 +5,8 @@ import numpy as np
 import pandas as pd
 from os import listdir
 from os.path import isfile, join
-from random import randrange
+import random
+import pdb
 
 random_seed = 42
 tf.random.set_random_seed(random_seed)
@@ -22,6 +23,22 @@ def get_data_files(path, train_valid_split=True, train_percentage=0.8):
         return train_files, valid_files
     else:
         return files
+
+def get_all_data_files(data_path, test_animal, train_valid_split=True, train_percentage=0.9):
+    animals = sorted([f for f in listdir(data_path)])
+    animals.remove(test_animal)
+    files = []
+    for animal in animals:
+        animal_path = data_path + animal
+        files.extend(sorted([animal_path+'/BL/'+f for f in listdir(animal_path+'/BL/')]))
+    if train_valid_split:
+        random.shuffle(files)
+        train_files = files[:round(len(files)*train_percentage)]
+        valid_files = files[round(len(files)*train_percentage):]
+        return train_files, valid_files
+    else:
+        return files
+
 
 
 
@@ -69,7 +86,8 @@ def csv_reader_dataset(filepaths, mean=0, std=0, n_readers=5, n_read_threads=Non
     dataset = dataset.map(read, num_parallel_calls=n_parse_threads)
     # dataset = dataset.map(lambda x: (x-mean) / (std + np.finfo(np.float32).eps), num_parallel_calls=n_parse_threads)
     dataset = dataset.map(lambda x: (x-tf.reduce_mean(x)) / (tf.math.reduce_std(x) + np.finfo(np.float32).eps), num_parallel_calls=n_parse_threads)
+    # dataset = dataset.map(lambda x: (x-tf.reduce_min(x)) / (tf.reduce_max(x) - tf.reduce_min(x)), num_parallel_calls=n_parse_threads)
     # dataset = dataset.map(lambda x: (x,x) , num_parallel_calls=n_parse_threads)
     
-    dataset = dataset.batch(batch_size, drop_remainder=True)
+    dataset = dataset.batch(batch_size, drop_remainder=False)
     return dataset.prefetch(1)

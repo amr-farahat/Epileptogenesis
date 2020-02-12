@@ -20,6 +20,9 @@ class AAE(tf.keras.Model):
         self.z_dim = z_dim
         self.kernel_size = 5
 
+        self.es_delta = 0.0001
+        self.es_patience = 5
+
         self.run_logdir = run_logdir
         self.n_critic_iterations = 1
         self.cross_entropy = tf.keras.losses.BinaryCrossentropy(from_logits=True)
@@ -41,10 +44,10 @@ class AAE(tf.keras.Model):
         self.gen_z_optimizer = tf.keras.optimizers.Adam(learning_rate=self.base_lr, beta_1=0.5)
         self.gen_x_optimizer = tf.keras.optimizers.Adam(learning_rate=self.base_lr, beta_1=0.5)
 
-        self.ae_loss_weight = 0.5
-        self.reg_loss_weight = 0.2
-        self.gen_z_loss_weight = 0.2
-        self.gen_x_loss_weight = 0.1
+        self.ae_loss_weight = 0.6
+        self.reg_loss_weight = 0.1
+        self.gen_z_loss_weight = 0.15
+        self.gen_x_loss_weight = 0.15
         self.dc_loss_weight = 1.0
                 
         self.encoder = self.make_encoder_model()
@@ -55,23 +58,76 @@ class AAE(tf.keras.Model):
     def make_encoder_model(self):
         input = tf.keras.layers.Input(shape=(self.input_size,1))
 
-        conv1 = tf.keras.layers.Conv1D(8, self.kernel_size, strides=2, padding='same', dilation_rate=1)(input)
+        conv1 = tf.keras.layers.Conv1D(16, self.kernel_size, strides=1, padding='same', dilation_rate=1)(input)
         conv1 = tf.keras.layers.BatchNormalization()(conv1)
+        
+
+        # conv1_res = tf.keras.layers.MaxPool1D(2)(input)
+        # y = tf.zeros([tf.cast(conv1_res.shape[0], dtype=tf.int32), tf.cast(conv1_res.shape[1], dtype=tf.int32), tf.cast(conv1_res.shape[2], dtype=tf.int32)*7])
+        # conv1_res = tf.concat([conv1_res, y], 2)
+        # conv1 = tf.keras.layers.add([conv1, conv1_res])
         conv1 = tf.keras.layers.ReLU()(conv1)
 
-        conv2 = tf.keras.layers.Conv1D(16, self.kernel_size, strides=2, padding='same', dilation_rate=1)(conv1)
+        conv1 = tf.keras.layers.Conv1D(16, self.kernel_size, strides=2, padding='same', dilation_rate=1)(conv1)
+        conv1 = tf.keras.layers.BatchNormalization()(conv1)
+        conv1 = tf.keras.layers.ReLU()(conv1)        
+
+
+
+        conv2 = tf.keras.layers.Conv1D(32, self.kernel_size, strides=1, padding='same', dilation_rate=1)(conv1)
+        conv2 = tf.keras.layers.BatchNormalization()(conv2)
+        
+
+        # conv2_res = tf.keras.layers.MaxPool1D(2)(conv1)
+        # y = tf.zeros_like(conv2_res)
+        # conv2_res = tf.concat([conv2_res, y], 2)
+        # conv2 = tf.keras.layers.add([conv2, conv2_res])
+        conv2 = tf.keras.layers.ReLU()(conv2)
+
+        conv2 = tf.keras.layers.Conv1D(32, self.kernel_size, strides=2, padding='same', dilation_rate=1)(conv2)
         conv2 = tf.keras.layers.BatchNormalization()(conv2)
         conv2 = tf.keras.layers.ReLU()(conv2)
 
-        conv3 = tf.keras.layers.Conv1D(32, self.kernel_size, strides=2, padding='same', dilation_rate=1)(conv2)
+
+        conv3 = tf.keras.layers.Conv1D(64, self.kernel_size, strides=1, padding='same', dilation_rate=1)(conv2)
+        conv3 = tf.keras.layers.BatchNormalization()(conv3)
+        
+
+        # conv3_res = tf.keras.layers.MaxPool1D(2)(conv2)
+        # y = tf.zeros_like(conv3_res)
+        # conv3_res = tf.concat([conv3_res, y], 2)
+        # conv3 = tf.keras.layers.add([conv3, conv3_res])
+        conv3 = tf.keras.layers.ReLU()(conv3)
+
+        conv3 = tf.keras.layers.Conv1D(64, self.kernel_size, strides=2, padding='same', dilation_rate=1)(conv3)
         conv3 = tf.keras.layers.BatchNormalization()(conv3)
         conv3 = tf.keras.layers.ReLU()(conv3)
 
-        conv4 = tf.keras.layers.Conv1D(64, self.kernel_size, strides=2, padding='same', dilation_rate=1)(conv3)
+        conv4 = tf.keras.layers.Conv1D(128, self.kernel_size, strides=1, padding='same', dilation_rate=1)(conv3)
+        conv4 = tf.keras.layers.BatchNormalization()(conv4)
+        
+
+        # conv4_res = tf.keras.layers.MaxPool1D(2)(conv3)
+        # y = tf.zeros_like(conv4_res)
+        # conv4_res = tf.concat([conv4_res, y], 2)
+        # conv4 = tf.keras.layers.add([conv4, conv4_res])
+        conv4 = tf.keras.layers.ReLU()(conv4)
+
+        conv4 = tf.keras.layers.Conv1D(128, self.kernel_size, strides=2, padding='same', dilation_rate=1)(conv4)
         conv4 = tf.keras.layers.BatchNormalization()(conv4)
         conv4 = tf.keras.layers.ReLU()(conv4)
 
-        conv5 = tf.keras.layers.Conv1D(128, self.kernel_size, strides=2, padding='same', dilation_rate=1)(conv4)
+        conv5 = tf.keras.layers.Conv1D(256, self.kernel_size, strides=1, padding='same', dilation_rate=1)(conv4)
+        conv5 = tf.keras.layers.BatchNormalization()(conv5)
+        
+
+        # conv5_res = tf.keras.layers.MaxPool1D(2)(conv4)
+        # y = tf.zeros_like(conv5_res)
+        # conv5_res = tf.concat([conv5_res, y], 2)
+        # conv5 = tf.keras.layers.add([conv5, conv5_res])
+        conv5 = tf.keras.layers.ReLU()(conv5)
+
+        conv5 = tf.keras.layers.Conv1D(256, self.kernel_size, strides=2, padding='same', dilation_rate=1)(conv5)
         conv5 = tf.keras.layers.BatchNormalization()(conv5)
         conv5 = tf.keras.layers.ReLU()(conv5)
 
@@ -85,23 +141,43 @@ class AAE(tf.keras.Model):
         encoded = tf.keras.Input(shape=(self.z_dim,1))
         reshaped_input = tf.keras.layers.Reshape((self.z_dim,1,1))(encoded)
 
-        deconv1 = tf.keras.layers.Conv2DTranspose(128, (self.kernel_size,1), strides=(2,1),  padding='same', dilation_rate=1)(reshaped_input)
+        deconv1 = tf.keras.layers.Conv2D(256, (self.kernel_size,1), strides=1,  padding='same', dilation_rate=1)(reshaped_input)
         deconv1 = tf.keras.layers.BatchNormalization()(deconv1)
         deconv1 = tf.keras.layers.ReLU()(deconv1)
 
-        deconv2 = tf.keras.layers.Conv2DTranspose(64, (self.kernel_size,1), strides=(2,1), padding='same', dilation_rate=1)(deconv1)
+        deconv1 = tf.keras.layers.Conv2DTranspose(256, (self.kernel_size,1), strides=(2,1),  padding='same', dilation_rate=1)(deconv1)
+        deconv1 = tf.keras.layers.BatchNormalization()(deconv1)
+        deconv1 = tf.keras.layers.ReLU()(deconv1)
+
+        deconv2 = tf.keras.layers.Conv2D(128, (self.kernel_size,1), strides=1, padding='same', dilation_rate=1)(deconv1)
+        deconv2 = tf.keras.layers.BatchNormalization()(deconv2)
+        deconv2 = tf.keras.layers.ReLU()(deconv2) 
+
+        deconv2 = tf.keras.layers.Conv2DTranspose(128, (self.kernel_size,1), strides=(2,1), padding='same', dilation_rate=1)(deconv2)
         deconv2 = tf.keras.layers.BatchNormalization()(deconv2)
         deconv2 = tf.keras.layers.ReLU()(deconv2)  
 
-        deconv3 = tf.keras.layers.Conv2DTranspose(32, (self.kernel_size,1), strides=(2,1),  padding='same', dilation_rate=1)(deconv2)
+        deconv3 = tf.keras.layers.Conv2D(64, (self.kernel_size,1), strides=1,  padding='same', dilation_rate=1)(deconv2)
+        deconv3 = tf.keras.layers.BatchNormalization()(deconv3)
+        deconv3 = tf.keras.layers.ReLU()(deconv3)
+
+        deconv3 = tf.keras.layers.Conv2DTranspose(64, (self.kernel_size,1), strides=(2,1),  padding='same', dilation_rate=1)(deconv3)
         deconv3 = tf.keras.layers.BatchNormalization()(deconv3)
         deconv3 = tf.keras.layers.ReLU()(deconv3) 
 
-        deconv4 = tf.keras.layers.Conv2DTranspose(16, (self.kernel_size,1), strides=(2,1),  padding='same', dilation_rate=1)(deconv3)
+        deconv4 = tf.keras.layers.Conv2D(32, (self.kernel_size,1), strides=1,  padding='same', dilation_rate=1)(deconv3)
+        deconv4 = tf.keras.layers.BatchNormalization()(deconv4)
+        deconv4 = tf.keras.layers.ReLU()(deconv4)  
+
+        deconv4 = tf.keras.layers.Conv2DTranspose(32, (self.kernel_size,1), strides=(2,1),  padding='same', dilation_rate=1)(deconv4)
         deconv4 = tf.keras.layers.BatchNormalization()(deconv4)
         deconv4 = tf.keras.layers.ReLU()(deconv4)      
 
-        deconv5 = tf.keras.layers.Conv2DTranspose(8, (self.kernel_size,1), strides=(2,1),  padding='same', dilation_rate=1)(deconv4)
+        deconv5 = tf.keras.layers.Conv2D(16, (self.kernel_size,1), strides=1,  padding='same', dilation_rate=1)(deconv4)
+        deconv5 = tf.keras.layers.BatchNormalization()(deconv5)
+        deconv5 = tf.keras.layers.ReLU()(deconv5) 
+
+        deconv5 = tf.keras.layers.Conv2DTranspose(16, (self.kernel_size,1), strides=(2,1),  padding='same', dilation_rate=1)(deconv5)
         deconv5 = tf.keras.layers.BatchNormalization()(deconv5)
         deconv5 = tf.keras.layers.ReLU()(deconv5)     
 
@@ -116,27 +192,27 @@ class AAE(tf.keras.Model):
     def make_discriminator_x_model(self):
         input = tf.keras.layers.Input(shape=(self.input_size,1))
 
-        conv1 = tf.keras.layers.Conv1D(8, self.kernel_size, strides=2, padding='same', dilation_rate=1)(input)
+        conv1 = tf.keras.layers.Conv1D(16, self.kernel_size, strides=2, padding='same', dilation_rate=1)(input)
         # conv1 = tf.keras.layers.BatchNormalization()(conv1)
         conv1 = tf.keras.layers.LeakyReLU(alpha=0.2)(conv1)
         # conv1 = tf.keras.layers.Dropout(0.3)(conv1)
 
-        conv2 = tf.keras.layers.Conv1D(16, self.kernel_size, strides=2, padding='same', dilation_rate=1)(conv1)
+        conv2 = tf.keras.layers.Conv1D(32, self.kernel_size, strides=2, padding='same', dilation_rate=1)(conv1)
         # conv2 = tf.keras.layers.BatchNormalization()(conv2)
         conv2 = tf.keras.layers.LeakyReLU(alpha=0.2)(conv2)
         # conv2 = tf.keras.layers.Dropout(0.3)(conv2)
 
-        conv3 = tf.keras.layers.Conv1D(32, self.kernel_size, strides=2, padding='same', dilation_rate=1)(conv2)
+        conv3 = tf.keras.layers.Conv1D(64, self.kernel_size, strides=2, padding='same', dilation_rate=1)(conv2)
         # conv3 = tf.keras.layers.BatchNormalization()(conv3)
         conv3 = tf.keras.layers.LeakyReLU(alpha=0.2)(conv3)
         # conv3 = tf.keras.layers.Dropout(0.3)(conv3)
 
-        conv4 = tf.keras.layers.Conv1D(64, self.kernel_size, strides=2, padding='same', dilation_rate=1)(conv3)
+        conv4 = tf.keras.layers.Conv1D(128, self.kernel_size, strides=2, padding='same', dilation_rate=1)(conv3)
         # conv4 = tf.keras.layers.BatchNormalization()(conv4)
         conv4 = tf.keras.layers.LeakyReLU(alpha=0.2)(conv4)
         # conv4 = tf.keras.layers.Dropout(0.3)(conv4)
 
-        conv5 = tf.keras.layers.Conv1D(128, self.kernel_size, strides=2, padding='same', dilation_rate=1)(conv4)
+        conv5 = tf.keras.layers.Conv1D(256, self.kernel_size, strides=2, padding='same', dilation_rate=1)(conv4)
         # conv5 = tf.keras.layers.BatchNormalization()(conv5)
         conv5 = tf.keras.layers.LeakyReLU(alpha=0.2)(conv5)
         # conv5 = tf.keras.layers.Dropout(0.3)(conv5)
@@ -157,8 +233,10 @@ class AAE(tf.keras.Model):
         encoded = tf.keras.Input(shape=(self.z_dim,1))
         flattened = tf.keras.layers.Flatten()(encoded)
         x = tf.keras.layers.Dense(self.h_dim)(flattened)
+        # x = tf.keras.layers.BatchNormalization()(x)
         x = tf.keras.layers.LeakyReLU(alpha=0.2)(x)
         x = tf.keras.layers.Dense(self.h_dim)(x)
+        # x = tf.keras.layers.BatchNormalization()(x)
         x = tf.keras.layers.LeakyReLU(alpha=0.2)(x)
         prediction = tf.keras.layers.Dense(1)(x)
         model = tf.keras.Model(inputs=encoded, outputs=[prediction, x])
@@ -232,11 +310,12 @@ class AAE(tf.keras.Model):
             dc_x_fake = self.discriminator_x(generator_output, training=True)[0]
             gen_x_loss = self.generator_loss(dc_x_fake, self.gen_x_loss_weight)                       
 
-            new_batch_x = []
-            for i in range(batch_x.shape[0]): 
-                idx = tf.random.uniform([self.augment_samples], minval=0, maxval=batch_x.shape[0], dtype=tf.int32)
-                new_batch_x.append(self.augment_weight*batch_x[i] + (1-self.augment_weight)*(tf.reduce_mean(tf.gather(batch_x, idx), 0)))
-            new_batch_x = tf.stack(new_batch_x)
+            new_batch_x = batch_x + tf.random.normal([tf.cast(batch_x.shape[0], dtype=tf.int32), tf.cast(batch_x.shape[1], dtype=tf.int32), 1], mean=0.0, stddev=1.0)
+            # new_batch_x = []
+            # for i in range(batch_x.shape[0]): 
+            #     idx = tf.random.uniform([self.augment_samples], minval=0, maxval=batch_x.shape[0], dtype=tf.int32)
+            #     new_batch_x.append(self.augment_weight*batch_x[i] + (1-self.augment_weight)*(tf.reduce_mean(tf.gather(batch_x, idx), 0)))
+            # new_batch_x = tf.stack(new_batch_x)
             encoder_output_augmented = self.encoder(new_batch_x, training=True)
             reg_loss = self.autoencoder_loss(encoder_output, encoder_output_augmented, self.reg_loss_weight)
 
@@ -327,6 +406,9 @@ class AAE(tf.keras.Model):
         metrics = {key:[] for key in ["ae_losses", "dc_z_losses", "dc_z_accs", "gen_z_losses", \
             "dc_x_losses", "dc_x_accs", "gen_x_losses", "dc_z_losses_real", "dc_z_losses_fake", "dc_x_losses_real", "dc_x_losses_fake" ]}
 
+        wait = 0
+        best = np.Inf
+
         for epoch in range(n_epochs):
             start = time.time()
 
@@ -377,7 +459,19 @@ class AAE(tf.keras.Model):
                 sample_data(self.decoder, self.z_dim, self.run_logdir, self.norm_params, self.std, epoch+1, no_samples=10)      
 
             # if (epoch+1) % 1 == 0:
-            #     plot_latent_space(self.encoder, valid_set, self.run_logdir, epoch+1)                              
+            #     plot_latent_space(self.encoder, valid_set, self.run_logdir, epoch+1)     
+
+            current = epoch_ae_loss_avg.result()
+            if current - self.es_delta < best:
+                best = current
+                wait = 0
+                self.save()
+            else:
+                wait +=1
+                if wait >= self.es_patience:
+                    return metrics
+
+                                     
 
         return metrics
 
