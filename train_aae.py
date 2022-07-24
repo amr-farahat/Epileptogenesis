@@ -32,12 +32,23 @@ root_logdir = paths_platforms["Farahat"]["root_logdir"]
 n_sec_per_sample = 1
 sampling_rate = 512
 input_size = n_sec_per_sample * sampling_rate
-h_dim = 512
-z_dim = 16
+h_dim = 384
+z_dim = 64
 n_epochs=100
 batch_size = 128
-LOO_animals = ["3263", "3266", "3267"]
-# LOO_animals = ["1227", "1237", "1270"]
+
+# LOO_animals = ["1275", "1276", "32140", "3267", "3263"]
+LOO_animals = ["1227", "1237", "3266", "32141", "1270"]
+
+
+
+# LOO_animals = ["1275", "1276"]
+# LOO_animals = ["32140", "32141"]
+# LOO_animals = ["3263", "3266"]
+# LOO_animals = ["1227", "1237"]
+# LOO_animals = ["3267", "1270"]
+
+
 n_files2use = 5
 
 
@@ -48,14 +59,14 @@ for LOO_animal in LOO_animals:
     if LOO:
         PPS_train_files, PPS_valid_files = get_data_files_LOO(PPS_data_path,
                                                               train_valid_split=True,
-                                                              train_percentage=0.9, num2use=15,
+                                                              train_percentage=0.9, num2use=30,
                                                               LOO_ID=LOO_animal,
                                                               if_LOO_ctrl=if_LOO_ctrl,
                                                               current_folder="PPS")
         Ctrl_train_files, Ctrl_valid_files = get_data_files_LOO(Ctrl_data_path,
                                                                 train_valid_split=True,
                                                                 train_percentage=0.9,
-                                                                num2use=100,
+                                                                num2use=60,
                                                                 LOO_ID=LOO_animal,
                                                                 if_LOO_ctrl=if_LOO_ctrl,
                                                                 current_folder="Ctrl")

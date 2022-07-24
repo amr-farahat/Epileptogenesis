@@ -2,11 +2,9 @@
 import tensorflow as tf
 # tf.enable_eager_execution()
 import numpy as np
-import pandas as pd
 from os import listdir
 from os.path import isfile, join
 import random
-import pdb
 import os
 
 random_seed = 42
@@ -135,20 +133,23 @@ def get_data_files_LOO(data_path, train_valid_split=True,
                  listdir(os.path.join(animal_path, 'BL'))])
             files_of_this_animal = list(filter(lambda x: "new.csv" in x,
                                                files_of_this_animal))  # get only .csv files
-            np.random.shuffle(files_of_this_animal)
-            picked_files = files_of_this_animal[0:min(len(files_of_this_animal),
-                                                      15)]  # TODO: hard coded num2use for control BL
+
             
-            files_of_this_animal = sorted(
+            files_of_this_animal2 = sorted(
                             [os.path.join(animal_path, 'EPG', f) for f in
                              listdir(os.path.join(animal_path, 'EPG'))])
-            files_of_this_animal = list(filter(lambda x: "new.csv" in x,
+            files_of_this_animal2 = list(filter(lambda x: "new.csv" in x,
                                                files_of_this_animal))  # get only .csv files
+
+            files_of_this_animal.extend(files_of_this_animal2)
+            
             np.random.shuffle(files_of_this_animal)
             num2use = len(
                 files_of_this_animal) if not num2use else num2use  # when num2use is None, then take all files from this animal
-            picked_files.extend(files_of_this_animal[0:min(len(files_of_this_animal),
-                                                      num2use)]) # randomly pick a certai number of hours
+
+            picked_files = files_of_this_animal[0:min(len(files_of_this_animal),
+                                                      num2use)]
+
         else:
             files_of_this_animal = sorted([os.path.join(animal_path, 'BL', f) for f in listdir(os.path.join(animal_path, 'BL'))])
             files_of_this_animal = list(filter(lambda x: "new.csv" in x,
@@ -173,24 +174,6 @@ def get_data_files_LOO(data_path, train_valid_split=True,
     else:
         np.random.shuffle(files_list)
         return files_list  # the valid list is empty
-
-def compute_data_parameters(files, dims=2560):
-
-    sums = np.zeros((dims,))
-    counter = 0
-    for file in files:
-        data = np.genfromtxt(file, delimiter=',')[:,2:]
-        counter += data.shape[0]
-        sums += data.sum(axis=0)
-    mean = sums/counter
-
-    sums = np.zeros((dims,))
-    for file in files:
-        data = np.genfromtxt(file, delimiter=',')[:,2:]
-        sums += ((data-mean)**2).sum(axis=0)
-    std=np.sqrt(sums/(counter-1))
-
-    return mean, std
 
 
 def csv_reader_dataset(filepaths, n_readers=5,
@@ -219,7 +202,6 @@ def csv_reader_dataset(filepaths, n_readers=5,
     else:
         dataset = tf.data.TextLineDataset(dataset)
     dataset = dataset.map(map_func=lambda x: read(x), num_parallel_calls=n_parse_threads)
-    # dataset = dataset.map(lambda x: (x-mean) / (std + np.finfo(np.float32).eps), num_parallel_calls=n_parse_threads)
     dataset = dataset.map(lambda x: (x-tf.reduce_mean(x)) / (tf.math.reduce_std(x) + np.finfo(np.float32).eps), num_parallel_calls=n_parse_threads)
 
     # reshape the sample to 1 second
@@ -228,8 +210,6 @@ def csv_reader_dataset(filepaths, n_readers=5,
 
     dataset = dataset.map(map_func=lambda x: reshape_to_k_sec(x, n_sec=n_sec_per_sample, sr=sr), num_parallel_calls=n_parse_threads)
     dataset = dataset.flat_map(lambda x: tf.data.Dataset.from_tensor_slices(x))
-    # dataset = dataset.map(lambda x: (x,x) , num_parallel_calls=n_parse_threads)
     
-    dataset = dataset.batch(batch_size, drop_remainder=False)
+    dataset = dataset.batch(batch_size, drop_remainder=True)
     return dataset.prefetch(2)
-
