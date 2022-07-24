@@ -9,19 +9,11 @@ from input_pipeline import csv_reader_dataset, get_train_val_files, get_data_fil
 from utils import get_run_logdir, plot_dict_loss
 
 LOO = True # False
-paths_platforms = {"Lu_laptop":{"PPS_data_path":"C:/Users/LDY/Desktop/EPG/EPG_data/data/3d/PPS",
-                                "Ctrl_data_path": "C:/Users/LDY/Desktop/EPG/EPG_data/data/3d/control",
-                                "root_logdir": "C:/Users/LDY/Desktop/EPG/EPG_data/results"
-                                },
+paths_platforms = {
                    "FIAS_cluster": {"PPS_data_path": "/home/epilepsy-data/data/PPS-rats-from-Sebastian/PPS-Rats",
                                     "Ctrl_data_path": "/home/epilepsy-data/data/PPS-rats-from-Sebastian/Control-Rats",
                                     "root_logdir": "/home/epilepsy-data/data/PPS-rats-from-Sebastian/resultsl-7rats"
-                                    },
-                   "Farahat": {"PPS_data_path": '/home/farahat/Documents/data',
-                               "Ctrl_data_path": '/home/farahat/Documents/data', # TODO: your control dir
-                               "root_logdir": '/home/farahat/Documents/my_logs'
-                               }
-                   
+                                    }                   
                    }
 
 platform = "FIAS_cluster"
