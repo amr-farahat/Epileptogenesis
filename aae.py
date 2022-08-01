@@ -41,14 +41,10 @@ class AAE(tf.keras.Model):
 
         self.ae_optimizer = tf.keras.optimizers.Adam(learning_rate=self.base_lr, beta_1=0.5)
         self.dc_z_optimizer = tf.keras.optimizers.Adam(learning_rate=self.base_lr, beta_1=0.5)
-        self.dc_x_optimizer = tf.keras.optimizers.Adam(learning_rate=self.base_lr, beta_1=0.5)
         self.gen_z_optimizer = tf.keras.optimizers.Adam(learning_rate=self.base_lr, beta_1=0.5)
-        self.gen_x_optimizer = tf.keras.optimizers.Adam(learning_rate=self.base_lr, beta_1=0.5)
 
         self.ae_loss_weight = 0.99
-        self.reg_loss_weight = 0.0
         self.gen_z_loss_weight = 0.01
-        self.gen_x_loss_weight = 0.0
         self.dc_loss_weight = 1.0
         
         self.kernels = [3,3,3,3]

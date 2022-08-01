@@ -4,27 +4,23 @@ import tensorflow as tf
 physical_devices = tf.config.list_physical_devices('GPU') 
 if physical_devices:
     tf.config.experimental.set_memory_growth(physical_devices[0], True)
-import matplotlib.pyplot as plt
 import matplotlib
 matplotlib.use('Agg')
 import os
 import scipy
 import seaborn as sns
 sns.set(style="darkgrid")
-import pandas as pd
-from sklearn.decomposition import PCA
+
 
 random_seed = 42
 tf.random.set_seed(random_seed)
 np.random.seed(random_seed)
 
-precomputed = False
-LOO = True
 data_path_general = "/home/epilepsy-data/data/PPS-rats-from-Sebastian/"
 root_logdir = '/home/farahat/Documents/my_logs/final_2/'
 batch_size = 512
 models = sorted([f for f in os.listdir(root_logdir)])
-z_dim = 64
+z_dim = 128
 
 for model_name in models[:]:
     print('working on: '+model_name)
@@ -41,26 +37,32 @@ for model_name in models[:]:
     if not os.path.exists(output_directory):
         os.mkdir(output_directory)
 
-    if LOO:
-        epg_files = get_data_files_from_folder(animal_path+'/EPG/', train_valid_split=False)
-        valid_files = get_data_files_from_folder(animal_path+'/BL/', train_valid_split=False)
-        trained_files_filename = [i for i in os.listdir(run_logdir) if 'picked_train' in i][0]
-        with open(run_logdir + '/' + trained_files_filename) as f:
-            train_files = f.readlines()
-            train_files = [i.strip() for i in train_files]
-    else:
-        epg_files = get_data_files_from_folder(animal_path+'/EPG/', train_valid_split=False)
-        train_files, valid_files = get_data_files_from_folder(animal_path+'/BL/')
+    # loading the data 
+    # test animal data epileptogenesis period
+    epg_files = get_data_files_from_folder(animal_path+'/EPG/', train_valid_split=False)
+    # test animal data baseline period
+    valid_files = get_data_files_from_folder(animal_path+'/BL/', train_valid_split=False)
+    # train data pooled from all other animals
+    trained_files_filename = [i for i in os.listdir(run_logdir) if 'picked_train' in i][0]
+    with open(run_logdir + '/' + trained_files_filename) as f:
+        train_files = f.readlines()
+        train_files = [i.strip() for i in train_files]
+
 
     epg_set = csv_reader_dataset(epg_files, batch_size=batch_size, shuffle=False)
     valid_set = csv_reader_dataset(valid_files, batch_size=batch_size, shuffle=False)
     train_set = csv_reader_dataset(train_files, batch_size=batch_size, shuffle=False)
 
+    # loading the model parts
     encoder = tf.keras.models.load_model(run_logdir+'/encoder.h5')
     decoder = tf.keras.models.load_model(run_logdir+'/decoder.h5')
 
 
     def compute_batch_distance(z):
+        '''
+        paramter z: a matrix of size (batch_size * z_dim)
+        return : the distance of vectors z to the origin of the prior distribution
+        '''
         distance = []
         for i in range(z.shape[0]):
             distance.append(scipy.spatial.distance.euclidean(z[i].numpy(),np.zeros(z_dim)))
@@ -68,6 +70,9 @@ for model_name in models[:]:
 
 
     def compute_distros(dataset, directory):
+        '''
+        compute the performance metrics (reconstruction error and distance to the origin of the prior distribution) for all one-second segments in the dataset
+        '''
         if not os.path.exists(directory):
             os.mkdir(directory)
         errors = np.array([])
@@ -93,8 +98,8 @@ for model_name in models[:]:
         np.save(directory+'/distances.npy', distances)
         np.save(directory+'/z.npy', z_all[1:,:])       
     
-    if not precomputed:
-        compute_distros(train_set, output_directory+'train_data')
-        compute_distros(valid_set, output_directory+'valid_data')
-        compute_distros(epg_set, output_directory+'epg_data')
+# run the funstion for all datasets (train, test animal baseline and test animal epileptogenesis)
+compute_distros(train_set, output_directory+'train_data')
+compute_distros(valid_set, output_directory+'valid_data')
+compute_distros(epg_set, output_directory+'epg_data')
 

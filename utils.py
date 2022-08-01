@@ -2,11 +2,9 @@ import warnings
 warnings.filterwarnings("ignore")
 import matplotlib.pyplot as plt
 import os
-import pdb
 import time
 import tensorflow as tf
 import numpy as np
-from sklearn.manifold import TSNE
 # tf.enable_eager_execution()
 
 
