@@ -24,8 +24,8 @@ root_logdir = paths_platforms["Farahat"]["root_logdir"]
 n_sec_per_sample = 1
 sampling_rate = 512
 input_size = n_sec_per_sample * sampling_rate
-h_dim = 384
-z_dim = 64
+h_dim = 1000
+z_dim = 128
 n_epochs=100
 batch_size = 128
 
