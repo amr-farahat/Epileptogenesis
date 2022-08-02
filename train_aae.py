@@ -24,7 +24,9 @@ root_logdir = paths_platforms["Farahat"]["root_logdir"]
 n_sec_per_sample = 1
 sampling_rate = 512
 input_size = n_sec_per_sample * sampling_rate
+# hidden dimension in discriminator
 h_dim = 1000
+# latent code size of the encoder
 z_dim = 128
 n_epochs=100
 batch_size = 128
